@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElasticityLens | Wiremind ML Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --wm-blue: #3b82f6;
+            --wm-blue-glow: rgba(59, 130, 246, 0.3);
+            --wm-teal: #14b8a6;
+            --wm-orange: #f97316;
+            --wm-red: #ef4444;
+            --wm-yellow: #eab308;
+            --wm-purple: #a855f7;
+            --wm-green: #22c55e;
+            --wm-pink: #ec4899;
+            --bg-space: #030816;
+            --bg-deep: #0c1222;
+            --bg-card: #151d2e;
+            --bg-hover: #1e293b;
+            --text-white: #f1f5f9;
+            --text-gray: #94a3b8;
+            --text-dim: #64748b;
+            --border: rgba(148, 163, 184, 0.1);
+            --gradient-main: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #a855f7 100%);
+            --gradient-card: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-space);
+            color: var(--text-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(249, 115, 22, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(249, 115, 22, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .glow-orbs {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-1 { width: 400px; height: 400px; background: rgba(249, 115, 22, 0.12); top: 10%; left: 10%; }
+        .orb-2 { width: 300px; height: 300px; background: rgba(236, 72, 153, 0.1); top: 60%; right: 10%; animation-delay: -10s; }
+        .orb-3 { width: 350px; height: 350px; background: rgba(168, 85, 247, 0.1); bottom: 10%; left: 30%; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -30px); }
+            66% { transform: translate(-20px, 20px); }
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(3, 8, 22, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+        }
+
+        .header-inner {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-main);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            position: relative;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: var(--gradient-main);
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(8px);
+        }
+
+        .logo-text h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .header-stat {
+            text-align: center;
+        }
+
+        .header-stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--wm-orange);
+        }
+
+        .header-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        .status-pill.live {
+            background: rgba(249, 115, 22, 0.1);
+            border-color: var(--wm-orange);
+            color: var(--wm-orange);
+        }
+
+        .status-pill.live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--wm-orange);
+            border-radius: 50%;
+            animation: livePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .main {
+            position: relative;
+            z-index: 1;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 1rem;
+            min-height: calc(100vh - 120px);
+        }
+
+        @media (max-width: 1400px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body { padding: 1rem 1.25rem; }
+
+        /* Transparency Banner */
+        .transparency-banner {
+            background: var(--gradient-card);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .transparency-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .transparency-icon {
+            font-size: 1.5rem;
+        }
+
+        .transparency-text h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--wm-orange);
+        }
+
+        .transparency-text p {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+        }
+
+        .explainability-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 0.75rem 1.25rem;
+            border-radius: 12px;
+        }
+
+        .explainability-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--wm-green);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .explainability-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        /* Main Panel */
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Segment Tabs */
+        .segment-tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.25rem;
+            background: var(--bg-deep);
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .segment-tab {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .segment-tab.active {
+            background: var(--wm-orange);
+            color: white;
+        }
+
+        .segment-tab:hover:not(.active) {
+            color: var(--text-white);
+            background: var(--bg-hover);
+        }
+
+        /* Price Curve Chart */
+        .chart-container {
+            position: relative;
+            height: 320px;
+            background: var(--bg-deep);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        /* Elasticity Grid */
+        .elasticity-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .elasticity-card {
+            background: var(--bg-deep);
+            border-radius: 12px;
+            padding: 1rem;
+            position: relative;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .elasticity-card:hover {
+            border-color: var(--wm-orange);
+            transform: translateY(-2px);
+        }
+
+        .elasticity-card.selected {
+            border-color: var(--wm-orange);
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        .elasticity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .elasticity-route {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .elasticity-badge {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .elasticity-badge.elastic { background: rgba(34, 197, 94, 0.2); color: var(--wm-green); }
+        .elasticity-badge.inelastic { background: rgba(239, 68, 68, 0.2); color: var(--wm-red); }
+        .elasticity-badge.unit { background: rgba(234, 179, 8, 0.2); color: var(--wm-yellow); }
+
+        .elasticity-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 0.25rem;
+        }
+
+        .elasticity-value.negative { color: var(--wm-orange); }
+
+        .elasticity-ci {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .elasticity-confidence {
+            margin-top: 0.5rem;
+            height: 4px;
+            background: var(--bg-card);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .confidence-bar {
+            height: 100%;
+            background: var(--wm-green);
+            border-radius: 2px;
+        }
+
+        /* Feature Importance */
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feature-name {
+            width: 140px;
+            font-size: 0.8rem;
+            color: var(--text-gray);
+        }
+
+        .feature-bar-container {
+            flex: 1;
+            height: 24px;
+            background: var(--bg-deep);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feature-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .feature-bar.positive { background: linear-gradient(90deg, var(--wm-green), var(--wm-teal)); }
+        .feature-bar.negative { background: linear-gradient(90deg, var(--wm-red), var(--wm-orange)); }
+
+        .feature-value {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Uncertainty Panel */
+        .uncertainty-viz {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .uncertainty-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .uncertainty-label {
+            width: 100px;
+            font-size: 0.8rem;
+            color: var(--text-gray);
+        }
+
+        .uncertainty-bar-wrapper {
+            flex: 1;
+            position: relative;
+            height: 30px;
+        }
+
+        .uncertainty-range {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 8px;
+            background: linear-gradient(90deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.5), rgba(168, 85, 247, 0.3));
+            border-radius: 4px;
+        }
+
+        .uncertainty-point {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            background: var(--wm-blue);
+            border: 3px solid var(--bg-card);
+            border-radius: 50%;
+        }
+
+        .uncertainty-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .metric-card {
+            background: var(--bg-deep);
+            border-radius: 12px;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .metric-card.orange::before { background: var(--wm-orange); }
+        .metric-card.pink::before { background: var(--wm-pink); }
+        .metric-card.purple::before { background: var(--wm-purple); }
+        .metric-card.teal::before { background: var(--wm-teal); }
+
+        .metric-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.4rem;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-card.orange .metric-value { color: var(--wm-orange); }
+        .metric-card.pink .metric-value { color: var(--wm-pink); }
+        .metric-card.purple .metric-value { color: var(--wm-purple); }
+        .metric-card.teal .metric-value { color: var(--wm-teal); }
+
+        .metric-change {
+            font-size: 0.7rem;
+            margin-top: 0.25rem;
+            color: var(--text-dim);
+        }
+
+        /* Why Explanation */
+        .why-section {
+            background: var(--bg-deep);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .why-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--wm-orange);
+        }
+
+        .why-explanation {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.6;
+        }
+
+        .why-factors {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .why-factor {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: var(--text-gray);
+        }
+
+        /* Model Comparison */
+        .model-comparison {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .model-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem;
+            background: var(--bg-deep);
+            border-radius: 8px;
+        }
+
+        .model-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .model-score {
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .model-score.best { color: var(--wm-green); }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-main);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-hover);
+            color: var(--text-gray);
+            border: 1px solid var(--border);
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="glow-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">🔍</div>
+                <div class="logo-text">
+                    <h1>ElasticityLens</h1>
+                    <p>Interpretable Price Intelligence</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <div class="header-stat-value">2,847</div>
+                    <div class="header-stat-label">O&D Pairs Analyzed</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value">94.2%</div>
+                    <div class="header-stat-label">Prediction Coverage</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value">±2.8%</div>
+                    <div class="header-stat-label">Avg. Uncertainty</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <div class="status-pill live">SHAP Enabled</div>
+                <div class="status-pill">Conformal: ON</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="transparency-banner">
+            <div class="transparency-content">
+                <span class="transparency-icon">🔮</span>
+                <div class="transparency-text">
+                    <h4>Transparent AI — No Black Box</h4>
+                    <p>Every elasticity estimate comes with SHAP explanations, confidence intervals, and clear reasoning</p>
+                </div>
+            </div>
+            <div class="explainability-score">
+                <div class="explainability-value">A+</div>
+                <div class="explainability-label">Explainability</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="main-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>📊</span> Price-Demand Curves</h3>
+                        <div class="segment-tabs">
+                            <button class="segment-tab active" onclick="setSegment('business')">Business</button>
+                            <button class="segment-tab" onclick="setSegment('leisure')">Leisure</button>
+                            <button class="segment-tab" onclick="setSegment('commuter')">Commuter</button>
+                            <button class="segment-tab" onclick="setSegment('all')">All</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="elasticityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>🎯</span> Route Elasticity Matrix</h3>
+                        <span style="font-size: 0.7rem; color: var(--text-dim);">Click to analyze</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="elasticity-grid" id="elasticityGrid"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>🧠</span> Feature Importance (SHAP)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="feature-list" id="featureList"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>📐</span> Uncertainty Quantification (Conformal)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="uncertainty-viz" id="uncertaintyViz"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>📈</span> Model Metrics</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metrics-grid">
+                            <div class="metric-card orange">
+                                <div class="metric-label">Mean Elasticity</div>
+                                <div class="metric-value">-1.34</div>
+                                <div class="metric-change">Network average</div>
+                            </div>
+                            <div class="metric-card pink">
+                                <div class="metric-label">R² Score</div>
+                                <div class="metric-value">0.923</div>
+                                <div class="metric-change">Validation set</div>
+                            </div>
+                            <div class="metric-card purple">
+                                <div class="metric-label">Coverage</div>
+                                <div class="metric-value">94.7%</div>
+                                <div class="metric-change">95% CI target</div>
+                            </div>
+                            <div class="metric-card teal">
+                                <div class="metric-label">Calibration</div>
+                                <div class="metric-value">0.98</div>
+                                <div class="metric-change">Near-perfect</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>💡</span> Why This Prediction?</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="why-section">
+                            <div class="why-title">
+                                <span>🔎</span> Paris → Lyon Analysis
+                            </div>
+                            <div class="why-explanation" id="whyExplanation">
+                                This route shows <strong>moderate elasticity (-1.34)</strong> because business travelers 
+                                (62% of traffic) are less price-sensitive. The estimate is highly confident 
+                                due to abundant historical data and stable demand patterns.
+                            </div>
+                            <div class="why-factors">
+                                <span class="why-factor">🏢 62% Business</span>
+                                <span class="why-factor">📅 Low seasonality</span>
+                                <span class="why-factor">🎯 High frequency</span>
+                                <span class="why-factor">⚔️ 2 competitors</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>🤖</span> Model Comparison</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-comparison">
+                            <div class="model-row">
+                                <span class="model-name">🌲 LightGBM + SHAP</span>
+                                <span class="model-score best">0.923 ✓</span>
+                            </div>
+                            <div class="model-row">
+                                <span class="model-name">🔷 XGBoost + SHAP</span>
+                                <span class="model-score">0.918</span>
+                            </div>
+                            <div class="model-row">
+                                <span class="model-name">📈 Linear Regression</span>
+                                <span class="model-score">0.847</span>
+                            </div>
+                            <div class="model-row">
+                                <span class="model-name">🧠 Neural Network</span>
+                                <span class="model-score">0.912</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span>⚙️</span> Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-grid">
+                            <button class="btn btn-primary" onclick="exportReport()">
+                                <span>📄</span> Export Report
+                            </button>
+                            <button class="btn btn-secondary" onclick="recalibrate()">
+                                <span>🔄</span> Recalibrate
+                            </button>
+                            <button class="btn btn-secondary" onclick="compareRoutes()">
+                                <span>📊</span> Compare
+                            </button>
+                            <button class="btn btn-secondary" onclick="showFullSHAP()">
+                                <span>🧠</span> Full SHAP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast">
+        <span style="font-size: 1.3rem;">✅</span>
+        <div>
+            <h4 id="toastTitle" style="font-size: 0.9rem; font-weight: 600;">Success</h4>
+            <p id="toastMsg" style="font-size: 0.75rem; color: var(--text-dim);">Operation completed</p>
+        </div>
+    </div>
+
+    <script>
+        // Elasticity data
+        const elasticityData = [
+            { route: 'Paris → Lyon', value: -1.34, ci: '[-1.52, -1.16]', type: 'unit', confidence: 96 },
+            { route: 'Paris → Marseille', value: -1.87, ci: '[-2.12, -1.62]', type: 'elastic', confidence: 89 },
+            { route: 'Paris → Bordeaux', value: -0.78, ci: '[-0.95, -0.61]', type: 'inelastic', confidence: 94 },
+            { route: 'Lyon → Marseille', value: -1.12, ci: '[-1.34, -0.90]', type: 'unit', confidence: 91 },
+            { route: 'Paris → Lille', value: -0.65, ci: '[-0.82, -0.48]', type: 'inelastic', confidence: 97 },
+            { route: 'Paris → Strasbourg', value: -1.45, ci: '[-1.71, -1.19]', type: 'elastic', confidence: 88 },
+            { route: 'Lyon → Paris', value: -1.28, ci: '[-1.45, -1.11]', type: 'unit', confidence: 95 },
+            { route: 'Marseille → Lyon', value: -1.56, ci: '[-1.82, -1.30]', type: 'elastic', confidence: 85 }
+        ];
+
+        // Feature importance
+        const features = [
+            { name: 'Days to Departure', value: 42, impact: 'positive' },
+            { name: 'Competitor Price', value: 38, impact: 'positive' },
+            { name: 'Time of Day', value: 28, impact: 'positive' },
+            { name: 'Day of Week', value: 24, impact: 'positive' },
+            { name: 'Booking History', value: 21, impact: 'positive' },
+            { name: 'Season Factor', value: 18, impact: 'negative' },
+            { name: 'Event Proximity', value: 15, impact: 'positive' },
+            { name: 'Weather Forecast', value: 8, impact: 'negative' }
+        ];
+
+        // Uncertainty predictions
+        const uncertaintyPredictions = [
+            { label: 'Business', lower: -1.52, point: -1.34, upper: -1.16 },
+            { label: 'Leisure', lower: -2.12, point: -1.87, upper: -1.62 },
+            { label: 'Commuter', lower: -0.82, point: -0.65, upper: -0.48 }
+        ];
+
+        let elasticityChart;
+        let selectedRoute = 0;
+
+        function init() {
+            renderElasticityGrid();
+            renderFeatures();
+            renderUncertainty();
+            initChart();
+        }
+
+        function renderElasticityGrid() {
+            const container = document.getElementById('elasticityGrid');
+            container.innerHTML = elasticityData.map((e, i) => `
+                <div class="elasticity-card ${i === selectedRoute ? 'selected' : ''}" onclick="selectRoute(${i})">
+                    <div class="elasticity-header">
+                        <span class="elasticity-route">${e.route}</span>
+                        <span class="elasticity-badge ${e.type}">${e.type === 'elastic' ? 'Elastic' : e.type === 'inelastic' ? 'Inelastic' : 'Unit'}</span>
+                    </div>
+                    <div class="elasticity-value negative">${e.value}</div>
+                    <div class="elasticity-ci">95% CI: ${e.ci}</div>
+                    <div class="elasticity-confidence">
+                        <div class="confidence-bar" style="width: ${e.confidence}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderFeatures() {
+            const container = document.getElementById('featureList');
+            const maxValue = Math.max(...features.map(f => f.value));
+            
+            container.innerHTML = features.map(f => `
+                <div class="feature-item">
+                    <span class="feature-name">${f.name}</span>
+                    <div class="feature-bar-container">
+                        <div class="feature-bar ${f.impact}" style="width: ${(f.value / maxValue) * 100}%"></div>
+                        <span class="feature-value">${f.value}%</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderUncertainty() {
+            const container = document.getElementById('uncertaintyViz');
+            
+            container.innerHTML = uncertaintyPredictions.map(p => {
+                const range = 3; // -3 to 0 range
+                const left = ((Math.abs(p.upper) / range) * 100);
+                const right = ((Math.abs(p.lower) / range) * 100);
+                const point = ((Math.abs(p.point) / range) * 100);
+                
+                return `
+                <div>
+                    <div class="uncertainty-row">
+                        <span class="uncertainty-label">${p.label}</span>
+                        <div class="uncertainty-bar-wrapper">
+                            <div class="uncertainty-range" style="left: ${left}%; right: ${100 - right}%"></div>
+                            <div class="uncertainty-point" style="left: ${point}%"></div>
+                        </div>
+                    </div>
+                    <div class="uncertainty-labels" style="margin-left: 116px;">
+                        <span>-3.0</span>
+                        <span>-2.0</span>
+                        <span>-1.0</span>
+                        <span>0</span>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('elasticityChart').getContext('2d');
+            
+            // Price points
+            const prices = [40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140];
+            
+            // Demand curves for different segments
+            const businessDemand = [920, 880, 845, 815, 790, 768, 750, 735, 722, 710, 700];
+            const leisureDemand = [1100, 980, 870, 780, 700, 630, 570, 520, 475, 440, 410];
+            const commuterDemand = [850, 830, 812, 798, 785, 774, 765, 758, 752, 747, 743];
+            
+            // Upper and lower bounds (confidence intervals)
+            const businessUpper = businessDemand.map(d => d * 1.08);
+            const businessLower = businessDemand.map(d => d * 0.92);
+
+            elasticityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: prices.map(p => '€' + p),
+                    datasets: [
+                        {
+                            label: 'Business Demand',
+                            data: businessDemand,
+                            borderColor: '#f97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#f97316',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Leisure Demand',
+                            data: leisureDemand,
+                            borderColor: '#ec4899',
+                            backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#ec4899',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Commuter Demand',
+                            data: commuterDemand,
+                            borderColor: '#a855f7',
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#a855f7',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Upper CI (95%)',
+                            data: businessUpper,
+                            borderColor: 'transparent',
+                            backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                            fill: '+1',
+                            pointRadius: 0,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Lower CI (95%)',
+                            data: businessLower,
+                            borderColor: 'transparent',
+                            backgroundColor: 'transparent',
+                            pointRadius: 0,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#94a3b8',
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { size: 11 },
+                                filter: function(item) {
+                                    return !item.text.includes('CI');
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#151d2e',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#94a3b8',
+                            borderColor: 'rgba(148, 163, 184, 0.2)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                            ticks: { color: '#64748b', font: { size: 10 } },
+                            title: {
+                                display: true,
+                                text: 'Price (€)',
+                                color: '#64748b'
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                            ticks: { color: '#64748b', font: { size: 10 } },
+                            title: {
+                                display: true,
+                                text: 'Demand (passengers)',
+                                color: '#64748b'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function setSegment(segment) {
+            document.querySelectorAll('.segment-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update chart visibility
+            if (segment === 'business') {
+                elasticityChart.data.datasets[0].hidden = false;
+                elasticityChart.data.datasets[1].hidden = true;
+                elasticityChart.data.datasets[2].hidden = true;
+            } else if (segment === 'leisure') {
+                elasticityChart.data.datasets[0].hidden = true;
+                elasticityChart.data.datasets[1].hidden = false;
+                elasticityChart.data.datasets[2].hidden = true;
+            } else if (segment === 'commuter') {
+                elasticityChart.data.datasets[0].hidden = true;
+                elasticityChart.data.datasets[1].hidden = true;
+                elasticityChart.data.datasets[2].hidden = false;
+            } else {
+                elasticityChart.data.datasets[0].hidden = false;
+                elasticityChart.data.datasets[1].hidden = false;
+                elasticityChart.data.datasets[2].hidden = false;
+            }
+            elasticityChart.update();
+            
+            showToast('Segment Changed', `Viewing ${segment} segment`);
+        }
+
+        function selectRoute(index) {
+            selectedRoute = index;
+            renderElasticityGrid();
+            
+            const route = elasticityData[index];
+            document.getElementById('whyExplanation').innerHTML = `
+                This route shows <strong>${route.type === 'elastic' ? 'high' : route.type === 'inelastic' ? 'low' : 'moderate'} elasticity (${route.value})</strong> 
+                with ${route.confidence}% model confidence. The prediction interval is tight at ${route.ci}, 
+                indicating reliable estimates for pricing decisions.
+            `;
+            
+            showToast('Route Selected', route.route);
+        }
+
+        function exportReport() {
+            showToast('Generating Report', 'Elasticity analysis PDF being created...');
+        }
+
+        function recalibrate() {
+            showToast('Recalibrating', 'Conformal prediction intervals updating...');
+        }
+
+        function compareRoutes() {
+            showToast('Comparison Mode', 'Select routes to compare elasticities');
+        }
+
+        function showFullSHAP() {
+            showToast('SHAP Analysis', 'Opening full feature explanation view...');
+        }
+
+        function showToast(title, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
